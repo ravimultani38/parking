@@ -1,4 +1,11 @@
 {
+  "scripts": {
+    "format": "prettier . --check",
+    "lint": "eslint .",
+    "start": "node app.js",
+    "dev": "node --watch --env-file=.env app.js",
+    "build": "cd ../frontend && npm install && npm run build"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
