@@ -1,11 +1,12 @@
 const express = require('express');
+require('dotenv').config();
 const mongoose = require('mongoose');
 const cors = require('cors');
 const app = express();
 const port = 3000;
 
 // MongoDB connection without deprecated options
-mongoose.connect('mongodb://localhost:37017/locationDB')
+mongoose.connect(process.env.DB_CONNECTION_STRING)
     .then(() => console.log('Connected to MongoDB successfully'))
     .catch((err) => {
         console.error('MongoDB connection error:', err);

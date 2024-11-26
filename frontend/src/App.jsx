@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import './App.css';
 
 // Replace with your actual Google Maps API key
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBqMCGb1-NgCBETQ3C8a6SOAW6WQHXtipg';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function App() {
   const [currentLocation, setCurrentLocation] = useState(null);
