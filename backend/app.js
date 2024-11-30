@@ -3,7 +3,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const cors = require('cors');
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
 
 // MongoDB connection without deprecated options
 mongoose.connect(process.env.DB_CONNECTION_STRING)
@@ -24,6 +24,7 @@ mongoose.connection.on('disconnected', () => {
 
 // Use CORS
 app.use(cors());
+
 
 // Middleware to parse JSON bodies with error handling
 app.use(express.json());
@@ -113,5 +114,11 @@ process.on('SIGTERM', () => {
             console.log('Server closed. Database instance disconnected');
             process.exit(0);
         });
+    });
+});
+app.get('/test', (req, res) => {
+    res.status(200).json({
+        message: 'Test endpoint is working!',
+        timestamp: new Date().toISOString()
     });
 });
