@@ -2,11 +2,17 @@ const express = require('express');
 require('dotenv').config();
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
+const Location = require('./models/Location'); // Ensure this path is correct
+
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 // MongoDB connection without deprecated options
-mongoose.connect(process.env.DB_CONNECTION_STRING)
+mongoose.connect(process.env.DB_CONNECTION_STRING, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
     .then(() => console.log('Connected to MongoDB successfully'))
     .catch((err) => {
         console.error('MongoDB connection error:', err);
@@ -14,7 +20,7 @@ mongoose.connect(process.env.DB_CONNECTION_STRING)
     });
 
 // Monitor MongoDB connection
-mongoose.connection.on('error', err => {
+mongoose.connection.on('error', (err) => {
     console.error('MongoDB connection error:', err);
 });
 
@@ -25,7 +31,6 @@ mongoose.connection.on('disconnected', () => {
 // Use CORS
 app.use(cors());
 
-
 // Middleware to parse JSON bodies with error handling
 app.use(express.json());
 app.use((err, req, res, next) => {
@@ -35,20 +40,27 @@ app.use((err, req, res, next) => {
     next();
 });
 
-// Import the location model
-const Location = require('./models/Location');
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+    const frontendPath = path.join(__dirname, '../frontend/dist');
+    app.use(express.static(frontendPath));
 
-// Enhanced endpoint with validation
+    // All unknown routes should be handed to React app
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(frontendPath, 'index.html'));
+    });
+}
+
+// Enhanced POST endpoint with validation
 app.post('/send-location', async (req, res) => {
     try {
         const { latitude, longitude } = req.body;
 
         // Validate input
-        if (!latitude || !longitude) {
-            console.log('Invalid data received:', req.body);
+        if (latitude == null || longitude == null) {
             return res.status(400).json({
                 error: 'Missing required fields',
-                received: req.body
+                received: req.body,
             });
         }
 
@@ -56,32 +68,30 @@ app.post('/send-location', async (req, res) => {
         if (!isFinite(latitude) || latitude < -90 || latitude > 90) {
             return res.status(400).json({
                 error: 'Invalid latitude value',
-                received: latitude
+                received: latitude,
             });
         }
 
         if (!isFinite(longitude) || longitude < -180 || longitude > 180) {
             return res.status(400).json({
                 error: 'Invalid longitude value',
-                received: longitude
+                received: longitude,
             });
         }
 
-        // Create and save location with await
+        // Create and save location
         const newLocation = new Location({ latitude, longitude });
         const savedLocation = await newLocation.save();
 
-        console.log('Location saved successfully:', savedLocation);
         res.status(200).json({
             message: 'Location saved successfully',
-            location: savedLocation
+            location: savedLocation,
         });
-
     } catch (error) {
         console.error('Server error:', error);
         res.status(500).json({
             error: 'Server error',
-            message: error.message
+            message: error.message,
         });
     }
 });
@@ -95,9 +105,17 @@ app.get('/locations', async (req, res) => {
         console.error('Error fetching locations:', error);
         res.status(500).json({
             error: 'Error fetching locations',
-            message: error.message
+            message: error.message,
         });
     }
+});
+
+// Test endpoint
+app.get('/test', (req, res) => {
+    res.status(200).json({
+        message: 'Test endpoint is working!',
+        timestamp: new Date().toISOString(),
+    });
 });
 
 // Start the server with error handling
@@ -114,11 +132,5 @@ process.on('SIGTERM', () => {
             console.log('Server closed. Database instance disconnected');
             process.exit(0);
         });
-    });
-});
-app.get('/test', (req, res) => {
-    res.status(200).json({
-        message: 'Test endpoint is working!',
-        timestamp: new Date().toISOString()
     });
 });
