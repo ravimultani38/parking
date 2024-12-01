@@ -11,7 +11,16 @@ function App() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markerRef = useRef(null);
+  const validateEnvVariables = () => {
+    if (!GOOGLE_MAPS_API_KEY) {
+        console.error('Error: API_KEY is not defined in the .env file.');
+        
+    }
+    console.log('API_KEY is present');
+};
 
+// Validate environment variables at application start
+validateEnvVariables();
   // Load Google Maps Script
   useEffect(() => {
     const script = document.createElement('script');
