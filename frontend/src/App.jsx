@@ -11,17 +11,7 @@ function App() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markerRef = useRef(null);
-  const validateEnvVariables = () => {
-    if (!GOOGLE_MAPS_API_KEY) {
-        console.error('Error: API_KEY is not defined in the .env file.');
-        
-    }
-    console.log('API_KEY is present');
-};
 
-// Validate environment variables at application start
-validateEnvVariables();
-  // Load Google Maps Script
   useEffect(() => {
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
@@ -74,7 +64,7 @@ validateEnvVariables();
           setLoading(false);
 
           // Send location to backend
-          fetch('http://localhost:3000/send-location', {
+          fetch('/send-location/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
