@@ -1,8 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
+import 'ol/ol.css';
+import { Map, View } from 'ol';
+import { Tile as TileLayer } from 'ol/layer';
+import { OSM } from 'ol/source';
+import { fromLonLat } from 'ol/proj';
+import { Feature } from 'ol';
+import { Point } from 'ol/geom';
+import { Style, Icon } from 'ol/style';
+import { Vector as VectorLayer } from 'ol/layer';
+import { Vector as VectorSource } from 'ol/source';
 import './App.css';
-
-// Replace with your actual Google Maps API key
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function App() {
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -10,56 +17,16 @@ function App() {
   const [error, setError] = useState(null);
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
-  const markerRef = useRef(null);
 
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
-    script.async = true;
-    script.defer = true;
-    script.addEventListener('load', initializeMap);
-    document.head.appendChild(script);
-
-    return () => {
-      script.removeEventListener('load', initializeMap);
-      document.head.removeChild(script);
-    };
-  }, []);
-
-  const initializeMap = () => {
-    if (currentLocation && mapRef.current && !mapInstance.current) {
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: { 
-          lat: currentLocation.latitude, 
-          lng: currentLocation.longitude 
-        },
-        zoom: 15,
-      });
-
-      const marker = new window.google.maps.Marker({
-        position: { 
-          lat: currentLocation.latitude, 
-          lng: currentLocation.longitude 
-        },
-        map: map,
-        title: 'Your Location'
-      });
-
-      mapInstance.current = map;
-      markerRef.current = marker;
-    }
-  };
-
-  // Get user's location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const location = {
             latitude: position.coords.latitude,
-            longitude: position.coords.longitude
+            longitude: position.coords.longitude,
           };
-          
+
           setCurrentLocation(location);
           setLoading(false);
 
@@ -67,13 +34,13 @@ function App() {
           fetch('/send-location/', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
             },
-            body: JSON.stringify(location)
+            body: JSON.stringify(location),
           })
-            .then(response => response.text())
-            .then(data => console.log(data))
-            .catch(err => {
+            .then((response) => response.text())
+            .then((data) => console.log(data))
+            .catch((err) => {
               console.error('Error:', err);
               setError('Failed to send location to server');
             });
@@ -90,18 +57,49 @@ function App() {
     }
   }, []);
 
-  // Update map when location changes
   useEffect(() => {
-    if (currentLocation && mapInstance.current && markerRef.current) {
-      const newPosition = { 
-        lat: currentLocation.latitude, 
-        lng: currentLocation.longitude 
-      };
-      
-      mapInstance.current.setCenter(newPosition);
-      markerRef.current.setPosition(newPosition);
-    } else if (currentLocation) {
-      initializeMap();
+    if (currentLocation && mapRef.current && !mapInstance.current) {
+      // Convert location to OpenLayers format
+      const { latitude, longitude } = currentLocation;
+      const center = fromLonLat([longitude, latitude]);
+
+      // Create a map instance
+      const map = new Map({
+        target: mapRef.current,
+        layers: [
+          new TileLayer({
+            source: new OSM(),
+          }),
+        ],
+        view: new View({
+          center: center,
+          zoom: 15,
+        }),
+      });
+
+      // Add marker
+      const marker = new Feature({
+        geometry: new Point(center),
+      });
+
+      marker.setStyle(
+        new Style({
+          image: new Icon({
+            anchor: [0.5, 1],
+            src: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Use your own marker icon URL
+            scale: 0.07,
+          }),
+        })
+      );
+
+      const vectorLayer = new VectorLayer({
+        source: new VectorSource({
+          features: [marker],
+        }),
+      });
+
+      map.addLayer(vectorLayer);
+      mapInstance.current = map;
     }
   }, [currentLocation]);
 
@@ -126,12 +124,8 @@ function App() {
       <h1 className="title">Your Current Location</h1>
       {currentLocation && (
         <div className="coordinates-container">
-          <p className="coordinate">
-            Latitude: {currentLocation.latitude.toFixed(6)}
-          </p>
-          <p className="coordinate">
-            Longitude: {currentLocation.longitude.toFixed(6)}
-          </p>
+          <p className="coordinate">Latitude: {currentLocation.latitude.toFixed(6)}</p>
+          <p className="coordinate">Longitude: {currentLocation.longitude.toFixed(6)}</p>
         </div>
       )}
       <div className="map-container">
